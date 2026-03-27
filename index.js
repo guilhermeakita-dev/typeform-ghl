@@ -6,31 +6,32 @@ const GHL_API_KEY = process.env.GHL_API_KEY;
 const GHL_LOCATION_ID = process.env.GHL_LOCATION_ID;
 const GHL_BASE = "https://services.leadconnectorhq.com";
 
-// ─── Mapeamento de respostas → tags ───────────────────────────────────────────
 const TAG_RULES = [
-  { contains: "Menos de 1 ano",            tag: "tempo-mercado-menos-1-ano" },
-  { contains: "1 a 3 anos",                tag: "tempo-mercado-1-3-anos" },
-  { contains: "3 a 5 anos",                tag: "tempo-mercado-3-5-anos" },
-  { contains: "Mais de 5 anos",            tag: "tempo-mercado-mais-5-anos" },
-  { contains: "Ainda não faturo",          tag: "Ainda não faturo" },
-  { contains: "Até R$2.000 a R$10.000",   tag: "menos de 10k" },
-  { contains: "De R$10.000 a R$30.000",   tag: "entre 10k a 30k" },
-  { contains: "Mais de R$30.000",          tag: "acima de 30k" },
+  { contains: "Menos de 1 ano",           tag: "tempo-mercado-menos-1-ano" },
+  { contains: "1 a 3 anos",               tag: "tempo-mercado-1-3-anos" },
+  { contains: "De 2 a 3 anos",            tag: "tempo-mercado-1-3-anos" },
+  { contains: "3 a 5 anos",               tag: "tempo-mercado-3-5-anos" },
+  { contains: "Mais de 5 anos",           tag: "tempo-mercado-mais-5-anos" },
+  { contains: "Ainda não faturo",         tag: "Ainda não faturo" },
+  { contains: "Até R$2.000 a R$10.000",  tag: "menos de 10k" },
+  { contains: "De R$10.000 a R$30.000",  tag: "entre 10k a 30k" },
+  { contains: "Mais de R$30.000",         tag: "acima de 30k" },
 ];
-// ─────────────────────────────────────────────────────────────────────────────
 
-function extractAnswers(answers = []) {
-  const result = { email: null, name: null, phone: null, instagram: null, allText: [] };
-
-  // Log todos os campos para debug
-  console.log("📋 Campos recebidos:");
-  for (const ans of answers) {
-    console.log(`   [${ans.type}] "${ans.field?.title}" =`, ans.email || ans.phone_number || ans.text || ans.choice?.label || ans.number || "");
+function extractAnswers(answers = [], fields = []) {
+  // Cria um mapa id → title a partir do definition.fields
+  const fieldMap = {};
+  for (const f of fields) {
+    fieldMap[f.id] = (f.title || "").toLowerCase();
   }
 
+  const result = { email: null, name: null, phone: null, instagram: null, allText: [] };
+
+  console.log("📋 Campos recebidos:");
   for (const ans of answers) {
     const type = ans.type;
-    const field = (ans.field?.title || "").toLowerCase();
+    const fieldId = ans.field?.id || "";
+    const title = fieldMap[fieldId] || "";
 
     let value = null;
     if (type === "email")             value = ans.email;
@@ -40,23 +41,21 @@ function extractAnswers(answers = []) {
     else if (type === "number")       value = String(ans.number);
     else if (ans.text)                value = ans.text;
 
-    if (!value) continue;
+    console.log(`   [${type}] "${title}" = ${value}`);
 
+    if (!value) continue;
     result.allText.push(value);
 
-    if (!result.email && (type === "email" || field.includes("email")))
+    if (!result.email && (type === "email" || title.includes("email")))
       result.email = value;
 
-    // Nome: tenta múltiplas variações
-    if (!result.name && (field.includes("nome") || field.includes("name") || field.includes("qual seu nom")))
+    if (!result.name && (title.includes("nome") || title.includes("name")))
       result.name = value;
 
-    // Telefone
-    if (!result.phone && (type === "phone_number" || field.includes("número") || field.includes("numero") || field.includes("telefone") || field.includes("whats")))
+    if (!result.phone && (type === "phone_number" || title.includes("número") || title.includes("numero") || title.includes("telefone") || title.includes("whats")))
       result.phone = value;
 
-    // Instagram
-    if (!result.instagram && (field.includes("instagram") || field.includes("@ da") || field.includes("marca")))
+    if (!result.instagram && (title.includes("instagram") || title.includes("marca")))
       result.instagram = value;
   }
 
@@ -109,18 +108,16 @@ async function addTags(contactId, tags) {
     },
     body: JSON.stringify({ tags })
   });
-  if (!res.ok) {
-    const err = await res.text();
-    throw new Error(err);
-  }
+  if (!res.ok) throw new Error(await res.text());
 }
 
 app.post("/webhook", async (req, res) => {
   try {
     const payload = req.body;
     const answers = payload?.form_response?.answers || [];
+    const fields  = payload?.form_response?.definition?.fields || [];
 
-    const { email, name, phone, instagram, allText } = extractAnswers(answers);
+    const { email, name, phone, instagram, allText } = extractAnswers(answers, fields);
     const tags = getTagsFromAnswers(allText);
 
     console.log("📩 Resumo:");
