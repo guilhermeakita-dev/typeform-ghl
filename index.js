@@ -8,30 +8,25 @@ const GHL_BASE = "https://services.leadconnectorhq.com";
 
 // ─── Mapeamento de respostas → tags ───────────────────────────────────────────
 const TAG_RULES = [
-  // Pergunta 5: Há quanto tempo sua marca está no mercado?
-  { contains: "Menos de 1 ano",  tag: "tempo-mercado-menos-1-ano" },
-  { contains: "1 a 3 anos",      tag: "tempo-mercado-1-3-anos" },
-  { contains: "3 a 5 anos",      tag: "tempo-mercado-3-5-anos" },
-  { contains: "Mais de 5 anos",  tag: "tempo-mercado-mais-5-anos" },
-
-  // Pergunta 6: Faturamento
-  { contains: "Ainda não faturo",             tag: "Ainda não faturo" },
-  { contains: "Até R$2.000 a R$10.000",       tag: "menos de 10k" },
-  { contains: "De R$10.000 a R$30.000",       tag: "entre 10k a 30k" },
-  { contains: "Mais de R$30.000",             tag: "acima de 30k" },
-
-  // Pergunta 8: Já investiu em mentorias?
-  { contains: "Sim",             tag: "ja-investiu-mentoria" },
-  { contains: "Não",             tag: "nunca-investiu-mentoria" },
-
-  // Pergunta 9: Possui loja online?
-  { contains: "Sim",             tag: "tem-loja-online" },
-  { contains: "Não",             tag: "sem-loja-online" },
+  { contains: "Menos de 1 ano",            tag: "tempo-mercado-menos-1-ano" },
+  { contains: "1 a 3 anos",                tag: "tempo-mercado-1-3-anos" },
+  { contains: "3 a 5 anos",                tag: "tempo-mercado-3-5-anos" },
+  { contains: "Mais de 5 anos",            tag: "tempo-mercado-mais-5-anos" },
+  { contains: "Ainda não faturo",          tag: "Ainda não faturo" },
+  { contains: "Até R$2.000 a R$10.000",   tag: "menos de 10k" },
+  { contains: "De R$10.000 a R$30.000",   tag: "entre 10k a 30k" },
+  { contains: "Mais de R$30.000",          tag: "acima de 30k" },
 ];
 // ─────────────────────────────────────────────────────────────────────────────
 
 function extractAnswers(answers = []) {
   const result = { email: null, name: null, phone: null, instagram: null, allText: [] };
+
+  // Log todos os campos para debug
+  console.log("📋 Campos recebidos:");
+  for (const ans of answers) {
+    console.log(`   [${ans.type}] "${ans.field?.title}" =`, ans.email || ans.phone_number || ans.text || ans.choice?.label || ans.number || "");
+  }
 
   for (const ans of answers) {
     const type = ans.type;
@@ -49,15 +44,18 @@ function extractAnswers(answers = []) {
 
     result.allText.push(value);
 
-    if (!result.email && (field.includes("email") || type === "email"))
+    if (!result.email && (type === "email" || field.includes("email")))
       result.email = value;
 
-    if (!result.name && (field.includes("nome") || field.includes("name")))
+    // Nome: tenta múltiplas variações
+    if (!result.name && (field.includes("nome") || field.includes("name") || field.includes("qual seu nom")))
       result.name = value;
 
-    if (!result.phone && (field.includes("número") || field.includes("numero") || field.includes("whats") || field.includes("telefone") || type === "phone_number"))
+    // Telefone
+    if (!result.phone && (type === "phone_number" || field.includes("número") || field.includes("numero") || field.includes("telefone") || field.includes("whats")))
       result.phone = value;
 
+    // Instagram
     if (!result.instagram && (field.includes("instagram") || field.includes("@ da") || field.includes("marca")))
       result.instagram = value;
   }
@@ -125,7 +123,7 @@ app.post("/webhook", async (req, res) => {
     const { email, name, phone, instagram, allText } = extractAnswers(answers);
     const tags = getTagsFromAnswers(allText);
 
-    console.log("📩 Nova resposta recebida");
+    console.log("📩 Resumo:");
     console.log("   Nome:", name);
     console.log("   Email:", email);
     console.log("   Telefone:", phone);
@@ -133,7 +131,7 @@ app.post("/webhook", async (req, res) => {
     console.log("   Tags:", tags);
 
     if (!email) {
-      console.warn("⚠️  Nenhum email encontrado, contato não criado.");
+      console.warn("⚠️  Nenhum email encontrado.");
       return res.status(200).json({ ok: false, reason: "no email" });
     }
 
