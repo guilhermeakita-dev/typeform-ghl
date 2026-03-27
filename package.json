@@ -1,0 +1,12 @@
+{
+  "name": "typeform-ghl",
+  "version": "1.0.0",
+  "description": "Webhook Typeform → GoHighLevel",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2"
+  }
+}
