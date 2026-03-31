@@ -66,9 +66,9 @@ function tagFaturamento(valor) {
   if (!valor) return null;
   const v = valor.toLowerCase();
   if (v.includes('ainda não faturo') || v.includes('ainda nao faturo')) return 'Ainda não faturo';
-  if (v.includes('2.000') || v.includes('10.000') || v.includes('menos de 10k')) return 'menos de 10k';
   if (v.includes('10.000') && v.includes('30.000') || v.includes('entre 10k')) return 'entre 10k a 30k';
   if (v.includes('30.000') || v.includes('acima de 30k') || v.includes('mais de 30')) return 'acima de 30k';
+  if (v.includes('2.000') || v.includes('10.000') || v.includes('menos de 10k')) return 'menos de 10k';
   return valor; // fallback: usa o valor bruto
 }
 
