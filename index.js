@@ -161,6 +161,33 @@ app.post('/webhook2', async (req, res) => {
 });
 
 // ─────────────────────────────────────────────
+// WEBHOOK 3 — Form Aplicação Aula Zoom Pago 07/04
+// ─────────────────────────────────────────────
+app.post('/webhook3', async (req, res) => {
+  console.log('\n📥 [/webhook3] Nova submissão recebida');
+  res.sendStatus(200);
+
+  try {
+    const campos = extrairCampos(req.body);
+
+    const nome     = campos['nome completo'] || campos['nome'];
+    const email    = campos['e-mail'] || campos['email'];
+    const telefone = campos['whatsapp (com ddd)'] || campos['telefone'];
+    const faturamento = Object.entries(campos).find(([k]) => k.includes('faturamento'))?.[1];
+
+    const tags = ['aplicou pago type aula zoom 07/04/2026'];
+    const tagFat = tagFaturamento(faturamento);
+    if (tagFat) tags.push(tagFat);
+
+    console.log('📌 Dados:', { nome, email, telefone, faturamento, tags });
+    await upsertContato({ nome, email, telefone }, tags);
+
+  } catch (err) {
+    console.error('Erro no /webhook3:', err.message);
+  }
+});
+
+// ─────────────────────────────────────────────
 app.get('/', (req, res) => res.send('Servidor online ✅'));
 
 const PORT = process.env.PORT || 8080;
