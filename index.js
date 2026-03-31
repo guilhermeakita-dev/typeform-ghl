@@ -121,7 +121,7 @@ app.post('/webhook', async (req, res) => {
                      || campos['faturamento'] 
                      || Object.entries(campos).find(([k]) => k.includes('faturamento'))?.[1];
 
-    const tags = ['aplicou bio type'];
+    const tags = ['aplicou bio type', 'preencheu forms bio ig raphael'];
     const tagFat = tagFaturamento(faturamento);
     if (tagFat) tags.push(tagFat);
 
