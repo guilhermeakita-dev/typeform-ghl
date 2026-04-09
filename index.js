@@ -30,7 +30,6 @@ function extrairCampos(body) {
       valor = answer.choices?.labels?.join(', ');
     }
     mapa[titulo] = valor;
-
     console.log(`   [${answer.type}] "${field.title}" = ${valor}`);
   });
 
@@ -71,12 +70,12 @@ function tagFaturamento(valor) {
 }
 
 // ─────────────────────────────────────────────
-// Utilitário: cria/atualiza contato no GHL
+// Utilitário: upsert do contato (SEM tags)
+// Retorna o ID do contato criado/atualizado
 // ─────────────────────────────────────────────
-async function upsertContato(dados, tags) {
+async function upsertContato(dados) {
   const payload = {
     locationId: GHL_LOCATION_ID,
-    tags: tags.filter(Boolean),
   };
 
   if (dados.email) payload.email = dados.email;
@@ -98,8 +97,29 @@ async function upsertContato(dados, tags) {
   });
 
   const json = await res.json();
-  console.log('GHL response:', JSON.stringify(json, null, 2));
-  return json;
+  console.log('GHL upsert response:', JSON.stringify(json, null, 2));
+  return json?.contact?.id || json?.id;
+}
+
+// ─────────────────────────────────────────────
+// Utilitário: adiciona tags SEM remover as existentes
+// ─────────────────────────────────────────────
+async function adicionarTags(contactId, tags) {
+  const tagsValidas = tags.filter(Boolean);
+  if (!tagsValidas.length || !contactId) return;
+
+  const res = await fetch(`https://services.leadconnectorhq.com/contacts/${contactId}/tags`, {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${GHL_API_KEY}`,
+      'Content-Type': 'application/json',
+      'Version': '2021-07-28',
+    },
+    body: JSON.stringify({ tags: tagsValidas }),
+  });
+
+  const json = await res.json();
+  console.log('GHL tags response:', JSON.stringify(json, null, 2));
 }
 
 // ─────────────────────────────────────────────
@@ -124,7 +144,9 @@ app.post('/webhook', async (req, res) => {
     if (tagFat) tags.push(tagFat);
 
     console.log('📌 Dados:', { nome, email, telefone, faturamento, tags });
-    await upsertContato({ nome, email, telefone }, tags);
+
+    const contactId = await upsertContato({ nome, email, telefone });
+    await adicionarTags(contactId, tags);
 
   } catch (err) {
     console.error('Erro no /webhook:', err.message);
@@ -151,7 +173,9 @@ app.post('/webhook2', async (req, res) => {
     if (tagFat) tags.push(tagFat);
 
     console.log('📌 Dados:', { nome, email, telefone, faturamento, tags });
-    await upsertContato({ nome, email, telefone }, tags);
+
+    const contactId = await upsertContato({ nome, email, telefone });
+    await adicionarTags(contactId, tags);
 
   } catch (err) {
     console.error('Erro no /webhook2:', err.message);
@@ -178,7 +202,9 @@ app.post('/webhook3', async (req, res) => {
     if (tagFat) tags.push(tagFat);
 
     console.log('📌 Dados:', { nome, email, telefone, faturamento, tags });
-    await upsertContato({ nome, email, telefone }, tags);
+
+    const contactId = await upsertContato({ nome, email, telefone });
+    await adicionarTags(contactId, tags);
 
   } catch (err) {
     console.error('Erro no /webhook3:', err.message);
@@ -205,7 +231,9 @@ app.post('/webhook4', async (req, res) => {
     if (tagFat) tags.push(tagFat);
 
     console.log('📌 Dados:', { nome, email, telefone, faturamento, tags });
-    await upsertContato({ nome, email, telefone }, tags);
+
+    const contactId = await upsertContato({ nome, email, telefone });
+    await adicionarTags(contactId, tags);
 
   } catch (err) {
     console.error('Erro no /webhook4:', err.message);
