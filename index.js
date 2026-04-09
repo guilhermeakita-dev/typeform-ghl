@@ -57,15 +57,31 @@ function extrairCampos(body) {
 }
 
 // ─────────────────────────────────────────────
-// Utilitário: tag de faturamento
+// Utilitário: tag de faturamento (padrão geral)
+// Usado nos webhooks 1, 2, 3, 4
 // ─────────────────────────────────────────────
 function tagFaturamento(valor) {
   if (!valor) return null;
   const v = valor.toLowerCase();
   if (v.includes('ainda não faturo') || v.includes('ainda nao faturo')) return 'Ainda não faturo';
-  if (v.includes('10.000') && v.includes('30.000') || v.includes('entre 10k')) return 'entre 10k a 30k';
+  if ((v.includes('10.000') && v.includes('30.000')) || v.includes('entre 10k')) return 'entre 10k a 30k';
   if (v.includes('30.000') || v.includes('acima de 30k') || v.includes('mais de 30')) return 'acima de 30k';
   if (v.includes('2.000') || v.includes('10.000') || v.includes('menos de 10k')) return 'menos de 10k';
+  return valor;
+}
+
+// ─────────────────────────────────────────────
+// Utilitário: tag de faturamento (Mieller - webhook5)
+// Opções específicas desse formulário
+// ─────────────────────────────────────────────
+function tagFaturamentoMieller(valor) {
+  if (!valor) return null;
+  const v = valor.toLowerCase();
+  if (v.includes('ainda não faturo') || v.includes('ainda nao faturo')) return 'Ainda não faturo';
+  if (v.includes('5.000') && (v.includes('10.000') || v.includes('10 000'))) return 'menos de 10k';
+  if (v.includes('10.000') && v.includes('30.000')) return 'entre 10k a 30k';
+  if (v.includes('acima de 30') || v.includes('acima de r$30')) return 'acima de 30k';
+  if (v.includes('5.000') || v.includes('r$5.000') || v.includes('até r$5')) return 'até r$5.000';
   return valor;
 }
 
@@ -237,6 +253,35 @@ app.post('/webhook4', async (req, res) => {
 
   } catch (err) {
     console.error('Erro no /webhook4:', err.message);
+  }
+});
+
+// ─────────────────────────────────────────────
+// WEBHOOK 5 — Form Evento Mieller 11/04/26
+// ─────────────────────────────────────────────
+app.post('/webhook5', async (req, res) => {
+  console.log('\n📥 [/webhook5] Nova submissão recebida');
+  res.sendStatus(200);
+
+  try {
+    const campos = extrairCampos(req.body);
+
+    const nome     = campos['nome completo'] || campos['nome'];
+    const email    = campos['e-mail'] || campos['email'];
+    const telefone = campos['whatsapp (com ddd)'] || campos['telefone'];
+    const faturamento = Object.entries(campos).find(([k]) => k.includes('faturamento'))?.[1];
+
+    const tags = ['lead evento mieller 11/04/26'];
+    const tagFat = tagFaturamentoMieller(faturamento);
+    if (tagFat) tags.push(tagFat);
+
+    console.log('📌 Dados:', { nome, email, telefone, faturamento, tags });
+
+    const contactId = await upsertContato({ nome, email, telefone });
+    await adicionarTags(contactId, tags);
+
+  } catch (err) {
+    console.error('Erro no /webhook5:', err.message);
   }
 });
 
