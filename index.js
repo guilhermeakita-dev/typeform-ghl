@@ -67,7 +67,7 @@ function tagFaturamento(valor) {
   if ((v.includes('10.000') && v.includes('30.000')) || v.includes('entre 10k')) return 'entre 10k a 30k';
   if (v.includes('30.000') || v.includes('acima de 30k') || v.includes('mais de 30')) return 'acima de 30k';
   if (v.includes('2.000') || v.includes('10.000') || v.includes('menos de 10k')) return 'menos de 10k';
-  return valor;
+  return null;
 }
 
 // ─────────────────────────────────────────────
@@ -155,7 +155,7 @@ app.post('/webhook', async (req, res) => {
                      || campos['faturamento']
                      || Object.entries(campos).find(([k]) => k.includes('faturamento'))?.[1];
 
-    const tags = ['preencheu forms bio ig raphael'];
+    const tags = ['aplicou bio type', 'preencheu forms bio ig raphael'];
     const tagFat = tagFaturamento(faturamento);
     if (tagFat) tags.push(tagFat);
 
