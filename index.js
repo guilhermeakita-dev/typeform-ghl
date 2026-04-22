@@ -58,7 +58,7 @@ function extrairCampos(body) {
 
 // ─────────────────────────────────────────────
 // Utilitário: tag de faturamento (padrão geral)
-// Usado nos webhooks 1, 2, 3, 4, 6, 7
+// Usado nos webhooks 1, 2, 3, 4, 6, 7, 8
 // ─────────────────────────────────────────────
 function tagFaturamento(valor) {
   if (!valor) return null;
@@ -139,7 +139,7 @@ async function adicionarTags(contactId, tags) {
 }
 
 // ─────────────────────────────────────────────
-// WEBHOOK 1 — Form original (Bio Instagram)
+// WEBHOOK 1 — Form original (Bio Instagram Raphael)
 // ─────────────────────────────────────────────
 app.post('/webhook', async (req, res) => {
   console.log('\n📥 [/webhook] Nova submissão recebida');
@@ -150,12 +150,12 @@ app.post('/webhook', async (req, res) => {
 
     const nome     = campos['qual seu nome?'] || campos['nome completo'] || campos['nome'];
     const email    = campos['qual seu melhor email?'] || campos['e-mail'] || campos['email'];
-    const telefone = campos['whatsapp (com ddd)'] || campos['telefone'] || campos['phone'];
+    const telefone = campos['qual seu melhor número de whatsapp?'] || campos['whatsapp (com ddd)'] || campos['telefone'] || campos['phone'];
     const faturamento = campos['qual é o faturamento médio mensal da sua marca?']
                      || campos['faturamento']
                      || Object.entries(campos).find(([k]) => k.includes('faturamento'))?.[1];
 
-    const tags = ['aplicou bio type', 'preencheu forms bio ig raphael'];
+    const tags = ['preencheu forms bio ig raphael'];
     const tagFat = tagFaturamento(faturamento);
     if (tagFat) tags.push(tagFat);
 
@@ -340,6 +340,37 @@ app.post('/webhook7', async (req, res) => {
 
   } catch (err) {
     console.error('Erro no /webhook7:', err.message);
+  }
+});
+
+// ─────────────────────────────────────────────
+// WEBHOOK 8 — Form Bio Instagram RB
+// ─────────────────────────────────────────────
+app.post('/webhook8', async (req, res) => {
+  console.log('\n📥 [/webhook8] Nova submissão recebida');
+  res.sendStatus(200);
+
+  try {
+    const campos = extrairCampos(req.body);
+
+    const nome     = campos['qual seu nome?'] || campos['nome completo'] || campos['nome'];
+    const email    = campos['qual seu melhor email?'] || campos['e-mail'] || campos['email'];
+    const telefone = campos['qual seu melhor número de whatsapp?'] || campos['whatsapp (com ddd)'] || campos['telefone'] || campos['phone'];
+    const faturamento = campos['qual é o faturamento médio mensal da sua marca?']
+                     || campos['faturamento']
+                     || Object.entries(campos).find(([k]) => k.includes('faturamento'))?.[1];
+
+    const tags = ['preencheu forms bio ig rb'];
+    const tagFat = tagFaturamento(faturamento);
+    if (tagFat) tags.push(tagFat);
+
+    console.log('📌 Dados:', { nome, email, telefone, faturamento, tags });
+
+    const contactId = await upsertContato({ nome, email, telefone });
+    await adicionarTags(contactId, tags);
+
+  } catch (err) {
+    console.error('Erro no /webhook8:', err.message);
   }
 });
 
