@@ -58,7 +58,7 @@ function extrairCampos(body) {
 
 // ─────────────────────────────────────────────
 // Utilitário: tag de faturamento (padrão geral)
-// Usado nos webhooks 1, 2, 3, 4, 6, 7, 8
+// Usado nos webhooks 1, 2, 3, 4, 6, 7, 8, 9
 // ─────────────────────────────────────────────
 function tagFaturamento(valor) {
   if (!valor) return null;
@@ -371,6 +371,35 @@ app.post('/webhook8', async (req, res) => {
 
   } catch (err) {
     console.error('Erro no /webhook8:', err.message);
+  }
+});
+
+// ─────────────────────────────────────────────
+// WEBHOOK 9 — Form Pós Aula Zoom 28/04/2026
+// ─────────────────────────────────────────────
+app.post('/webhook9', async (req, res) => {
+  console.log('\n📥 [/webhook9] Nova submissão recebida');
+  res.sendStatus(200);
+
+  try {
+    const campos = extrairCampos(req.body);
+
+    const nome     = campos['nome completo'] || campos['nome'];
+    const email    = campos['e-mail'] || campos['email'];
+    const telefone = campos['whatsapp (com ddd)'] || campos['telefone'];
+    const faturamento = Object.entries(campos).find(([k]) => k.includes('faturamento'))?.[1];
+
+    const tags = ['aplicou pós aula zoom 28/04/2026'];
+    const tagFat = tagFaturamento(faturamento);
+    if (tagFat) tags.push(tagFat);
+
+    console.log('📌 Dados:', { nome, email, telefone, faturamento, tags });
+
+    const contactId = await upsertContato({ nome, email, telefone });
+    await adicionarTags(contactId, tags);
+
+  } catch (err) {
+    console.error('Erro no /webhook9:', err.message);
   }
 });
 
